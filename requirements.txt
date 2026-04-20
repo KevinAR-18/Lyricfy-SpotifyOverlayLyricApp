@@ -1,0 +1,4 @@
+PySide6>
+python-dotenv>=1.0
+requests>=2.32
+spotipy>=2.24

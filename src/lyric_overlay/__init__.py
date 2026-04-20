@@ -1,0 +1,1 @@
+"""Lyric Overlay starter package."""
