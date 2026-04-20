@@ -24,6 +24,8 @@ class AppConfig:
     lyric_offset_ms: int = 0
     overlay_bg_color: str = "#0A0A0AEB"
     overlay_text_color: str = "#F4F4F4"
+    lyric_text_color: str = "#F4F4F4"
+    lyric_glow_color: str = "#66CCFFFF"
 
 
 def load_config() -> AppConfig:
@@ -41,6 +43,8 @@ def load_config() -> AppConfig:
         lyric_offset_ms=int(os.getenv("LYRIC_OFFSET_MS", "0")),
         overlay_bg_color=os.getenv("OVERLAY_BG_COLOR", "#0A0A0AEB").strip() or "#0A0A0AEB",
         overlay_text_color=os.getenv("OVERLAY_TEXT_COLOR", "#F4F4F4").strip() or "#F4F4F4",
+        lyric_text_color=os.getenv("LYRIC_TEXT_COLOR", "#F4F4F4").strip() or "#F4F4F4",
+        lyric_glow_color=os.getenv("LYRIC_GLOW_COLOR", "#66CCFFFF").strip() or "#66CCFFFF",
     )
 
 
@@ -59,5 +63,7 @@ def save_config(config: AppConfig) -> None:
         f"LYRIC_OFFSET_MS={config.lyric_offset_ms}",
         f"OVERLAY_BG_COLOR={config.overlay_bg_color}",
         f"OVERLAY_TEXT_COLOR={config.overlay_text_color}",
+        f"LYRIC_TEXT_COLOR={config.lyric_text_color}",
+        f"LYRIC_GLOW_COLOR={config.lyric_glow_color}",
     ]
     ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")

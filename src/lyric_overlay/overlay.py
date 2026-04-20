@@ -3,9 +3,10 @@ from __future__ import annotations
 import time
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
     QApplication,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -39,6 +40,8 @@ class OverlayWindow(QWidget):
         self._header_visible_until = 0.0
         self._overlay_bg_color = "#0A0A0AEB"
         self._overlay_text_color = "#F4F4F4"
+        self._lyric_text_color = "#F4F4F4"
+        self._lyric_glow_color = "#66CCFFFF"
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -109,6 +112,8 @@ class OverlayWindow(QWidget):
         self.lyric_offset_input = self._create_input("Example: -250 or 300")
         self.overlay_color_input = self._create_input("Example: #0A0A0AEB")
         self.text_color_input = self._create_input("Example: #F4F4F4")
+        self.lyric_color_input = self._create_input("Example: #F4F4F4")
+        self.glow_color_input = self._create_input("Example: #66CCFFFF")
 
         settings_actions = QHBoxLayout()
         settings_actions.setSpacing(8)
@@ -129,6 +134,8 @@ class OverlayWindow(QWidget):
         settings_layout.addWidget(self._create_offset_field())
         settings_layout.addWidget(self._create_field("Overlay Color", self.overlay_color_input))
         settings_layout.addWidget(self._create_field("Text Color", self.text_color_input))
+        settings_layout.addWidget(self._create_field("Lyric Color", self.lyric_color_input))
+        settings_layout.addWidget(self._create_field("Lyric Glow Color", self.glow_color_input))
         settings_layout.addLayout(settings_actions)
         self.settings_panel.hide()
 
@@ -136,6 +143,11 @@ class OverlayWindow(QWidget):
         card_layout.addWidget(self.track_title_label)
         card_layout.addWidget(self.status_label)
         card_layout.addWidget(self.settings_panel)
+
+        self._lyric_glow = QGraphicsDropShadowEffect(self)
+        self._lyric_glow.setBlurRadius(18)
+        self._lyric_glow.setOffset(0, 0)
+        self.compact_label.setGraphicsEffect(self._lyric_glow)
 
         self._apply_theme()
         self._refresh_compact_text()
@@ -151,6 +163,9 @@ class OverlayWindow(QWidget):
             QLabel {{
                 color: {self._overlay_text_color};
                 background: transparent;
+            }}
+            QLabel#compactLyric {{
+                color: {self._lyric_text_color};
             }}
             QLineEdit {{
                 background: rgba(255, 255, 255, 20);
@@ -180,6 +195,10 @@ class OverlayWindow(QWidget):
             }}
             """
         )
+        self.compact_label.setObjectName("compactLyric")
+        self.compact_label.style().unpolish(self.compact_label)
+        self.compact_label.style().polish(self.compact_label)
+        self._lyric_glow.setColor(QColor(self._lyric_glow_color))
 
     def _create_input(self, placeholder: str) -> QLineEdit:
         widget = QLineEdit()
@@ -243,6 +262,8 @@ class OverlayWindow(QWidget):
         self.lyric_offset_input.setText(str(config.lyric_offset_ms))
         self.overlay_color_input.setText(config.overlay_bg_color)
         self.text_color_input.setText(config.overlay_text_color)
+        self.lyric_color_input.setText(config.lyric_text_color)
+        self.glow_color_input.setText(config.lyric_glow_color)
         self.apply_config_theme(config)
 
     def current_form_config(self) -> AppConfig:
@@ -260,11 +281,15 @@ class OverlayWindow(QWidget):
             lyric_offset_ms=lyric_offset_ms,
             overlay_bg_color=self.overlay_color_input.text().strip() or "#0A0A0AEB",
             overlay_text_color=self.text_color_input.text().strip() or "#F4F4F4",
+            lyric_text_color=self.lyric_color_input.text().strip() or "#F4F4F4",
+            lyric_glow_color=self.glow_color_input.text().strip() or "#66CCFFFF",
         )
 
     def apply_config_theme(self, config: AppConfig) -> None:
         self._overlay_bg_color = config.overlay_bg_color or "#0A0A0AEB"
         self._overlay_text_color = config.overlay_text_color or "#F4F4F4"
+        self._lyric_text_color = config.lyric_text_color or "#F4F4F4"
+        self._lyric_glow_color = config.lyric_glow_color or "#66CCFFFF"
         self._apply_theme()
 
     def show_status(self, message: str) -> None:

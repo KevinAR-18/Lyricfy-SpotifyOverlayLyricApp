@@ -59,6 +59,8 @@ def main() -> int:
             lyric_offset_ms=new_config.lyric_offset_ms,
             overlay_bg_color=new_config.overlay_bg_color or config.overlay_bg_color,
             overlay_text_color=new_config.overlay_text_color or config.overlay_text_color,
+            lyric_text_color=new_config.lyric_text_color or config.lyric_text_color,
+            lyric_glow_color=new_config.lyric_glow_color or config.lyric_glow_color,
         )
         save_config(saved_config)
         overlay.apply_config_theme(saved_config)
