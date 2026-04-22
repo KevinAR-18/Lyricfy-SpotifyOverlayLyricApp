@@ -199,5 +199,5 @@ That location is used for:
 - The tray icon remains available for control and exit
 - The track header shows for about 10 seconds when a new track starts
 - Long lyrics can wrap to a second line
-- The `x` button hides the overlay
+- The `-` button hides the overlay
 - The settings button expands the configuration panel
