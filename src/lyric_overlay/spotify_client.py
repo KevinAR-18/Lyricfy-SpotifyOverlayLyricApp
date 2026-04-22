@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import spotipy
+from spotipy import SpotifyException
 from spotipy.oauth2 import SpotifyOAuth
 
 from .config import TOKEN_CACHE
@@ -10,6 +12,7 @@ from .models import TrackInfo
 
 
 SPOTIFY_SCOPES = "user-read-currently-playing user-read-playback-state"
+RATE_LIMIT_COOLDOWN_SECONDS = 60
 
 
 class SpotifyClient:
@@ -30,10 +33,32 @@ class SpotifyClient:
             cache_path=str(TOKEN_CACHE),
             open_browser=True,
         )
-        self._spotify = spotipy.Spotify(auth_manager=auth_manager)
+        self._spotify = spotipy.Spotify(
+            auth_manager=auth_manager,
+            requests_timeout=3,
+            retries=0,
+            status_retries=0,
+            backoff_factor=0,
+            status_forcelist=(),
+        )
+        self._rate_limited_until = 0.0
 
     def get_current_track(self) -> TrackInfo | None:
-        payload = self._spotify.current_user_playing_track()
+        cooldown_seconds = self._cooldown_seconds_remaining()
+        if cooldown_seconds > 0:
+            raise RuntimeError(
+                f"Spotify API cooldown aktif. Coba lagi dalam {cooldown_seconds} dtk."
+            )
+
+        try:
+            payload = self._spotify.current_user_playing_track()
+        except SpotifyException as exc:
+            if exc.http_status == 429:
+                self._rate_limited_until = time.monotonic() + RATE_LIMIT_COOLDOWN_SECONDS
+                raise RuntimeError(
+                    f"Spotify API kena rate limit. Cooldown {RATE_LIMIT_COOLDOWN_SECONDS} dtk."
+                ) from exc
+            raise RuntimeError(str(exc)) from exc
         if not payload or not payload.get("item"):
             return None
 
@@ -54,3 +79,7 @@ class SpotifyClient:
 
     def raw_playback_state(self) -> dict[str, Any] | None:
         return self._spotify.current_playback()
+
+    def _cooldown_seconds_remaining(self) -> int:
+        remaining = int(self._rate_limited_until - time.monotonic())
+        return remaining if remaining > 0 else 0

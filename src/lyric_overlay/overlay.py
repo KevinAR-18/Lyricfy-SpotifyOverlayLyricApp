@@ -76,7 +76,7 @@ class OverlayWindow(QWidget):
         self.settings_button.clicked.connect(self.toggle_settings)
 
         self.close_button = QToolButton()
-        self.close_button.setText("x")
+        self.close_button.setText("-")
         self.close_button.setToolTip("Hide Overlay")
         self.close_button.clicked.connect(self.request_close)
 
@@ -349,16 +349,14 @@ class OverlayWindow(QWidget):
     def _refresh_compact_text(self) -> None:
         title_text = self._track_text.strip()
         artist_text = self._artist_text.strip()
-        header_text = f"{artist_text} - {title_text}" if artist_text and title_text else (artist_text or title_text)
+        header_text = artist_text or title_text
         self.track_title_label.setText(header_text)
         self.track_title_label.setVisible(bool(header_text) and time.monotonic() < self._header_visible_until)
 
         if self._current_line_text:
             compact_text = self._current_line_text
-        elif artist_text:
-            compact_text = artist_text
         else:
-            compact_text = title_text
+            compact_text = title_text or artist_text
 
         self.compact_label.setText(compact_text)
 

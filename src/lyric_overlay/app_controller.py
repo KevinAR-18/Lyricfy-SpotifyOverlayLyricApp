@@ -66,21 +66,26 @@ class AppController(QObject):
         self.snapshot = PlaybackSnapshot()
         self.worker: PlaybackWorker | None = None
 
-        if self.spotify_client is not None:
-            self._start_worker()
-
     def start(self) -> None:
         if self.spotify_client is None:
             self.overlay.set_track(None)
             self.overlay.set_lines("Open Settings to add Spotify credentials", "")
             return
 
-        self.refresh(self.spotify_client.get_current_track())
+        try:
+            self.refresh(self.spotify_client.get_current_track())
+        except Exception as exc:  # noqa: BLE001
+            self.snapshot = PlaybackSnapshot(track=None, lyrics=LyricsData(source="none", lines=[]))
+            self.sync_engine.set_lyrics(self.snapshot.lyrics)
+            self.overlay.set_track(None)
+            self.overlay.set_lines("", "")
+            self.show_error(str(exc))
         self._start_worker()
 
     def stop(self) -> None:
         if self.worker is not None:
             self.worker.stop()
+            self.worker = None
 
     def reconnect(self, spotify_client: SpotifyClient | None, config: AppConfig) -> None:
         self.stop()
@@ -136,10 +141,12 @@ class AppController(QObject):
         )
 
     def show_error(self, message: str) -> None:
-        self.overlay.show_status(message)
+        self.overlay.show_status(self._format_error_message(message))
 
     def _start_worker(self) -> None:
         if self.spotify_client is None:
+            return
+        if self.worker is not None:
             return
 
         self.worker = PlaybackWorker(
@@ -149,3 +156,17 @@ class AppController(QObject):
         self.worker.refreshed.connect(self.refresh)
         self.worker.failed.connect(self.show_error)
         self.worker.start()
+
+    def _format_error_message(self, message: str) -> str:
+        normalized = message.strip()
+        lowered = normalized.lower()
+
+        if "cooldown aktif" in lowered or "cooldown " in lowered:
+            return normalized
+        if "429" in lowered or "rate limit" in lowered or "too many requests" in lowered:
+            return "Spotify API kena rate limit. Tunggu sebentar lalu coba lagi."
+        if "connectionerror" in lowered or "failed to establish a new connection" in lowered:
+            return "Gagal terhubung ke Spotify API."
+        if normalized:
+            return normalized
+        return "Terjadi error saat mengambil data Spotify."
