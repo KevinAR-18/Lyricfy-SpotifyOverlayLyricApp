@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
@@ -134,9 +135,11 @@ def main() -> int:
 
     overlay.save_requested.connect(save_settings)
     overlay.reconnect_requested.connect(reconnect_spotify)
+    overlay.overlay_hidden.connect(controller.pause_polling)
+    overlay.overlay_shown.connect(controller.resume_polling)
     app.aboutToQuit.connect(controller.stop)
     overlay.show()
-    controller.start()
+    QTimer.singleShot(0, controller.start)
     return app.exec()
 
 

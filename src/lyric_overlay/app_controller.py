@@ -71,15 +71,6 @@ class AppController(QObject):
             self.overlay.set_track(None)
             self.overlay.set_lines("Open Settings to add Spotify credentials", "")
             return
-
-        try:
-            self.refresh(self.spotify_client.get_current_track())
-        except Exception as exc:  # noqa: BLE001
-            self.snapshot = PlaybackSnapshot(track=None, lyrics=LyricsData(source="none", lines=[]))
-            self.sync_engine.set_lyrics(self.snapshot.lyrics)
-            self.overlay.set_track(None)
-            self.overlay.set_lines("", "")
-            self.show_error(str(exc))
         self._start_worker()
 
     def stop(self) -> None:
@@ -101,6 +92,14 @@ class AppController(QObject):
 
         self.overlay.show_status("Spotify reconnected")
         self.start()
+
+    def pause_polling(self) -> None:
+        self.stop()
+
+    def resume_polling(self) -> None:
+        if self.spotify_client is None:
+            return
+        self._start_worker()
 
     def refresh(self, track: TrackInfo | None) -> None:
         if track is None:

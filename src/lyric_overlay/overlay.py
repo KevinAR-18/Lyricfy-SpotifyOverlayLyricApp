@@ -24,6 +24,8 @@ from .models import TrackInfo
 class OverlayWindow(QWidget):
     save_requested = Signal(object)
     reconnect_requested = Signal()
+    overlay_hidden = Signal()
+    overlay_shown = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -428,20 +430,29 @@ class OverlayWindow(QWidget):
         self.hide_to_tray()
 
     def show_from_tray(self) -> None:
+        was_visible = self.isVisible()
         self.show()
         self.raise_()
         self.activateWindow()
+        if not was_visible:
+            self.overlay_shown.emit()
 
     def hide_to_tray(self) -> None:
+        was_visible = self.isVisible()
         self.hide()
+        if was_visible:
+            self.overlay_hidden.emit()
 
     def open_settings_from_tray(self) -> None:
-        if not self.isVisible():
+        was_visible = self.isVisible()
+        if not was_visible:
             self.show()
         if not self._expanded:
             self.toggle_settings()
         self.raise_()
         self.activateWindow()
+        if not was_visible:
+            self.overlay_shown.emit()
 
     def allow_exit(self) -> None:
         self._allow_exit = True
