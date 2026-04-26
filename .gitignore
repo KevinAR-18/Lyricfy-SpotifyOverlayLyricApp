@@ -1,7 +1,10 @@
 .env
 .spotify_cache
+examplebuildbat.bat
 src/lyric_overlay/__pycache__/
 __pycache__/
+.pytest_cache/
+.mypy_cache/
 
 build/
 dist/
@@ -9,4 +12,3 @@ dist/
 *.ifp
 
 Lyricfy.spec
-.spotify_cache

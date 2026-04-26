@@ -1,53 +1,51 @@
 # Lyricfy
 
-Lyricfy is a Windows desktop Spotify lyric overlay built with Python and PySide6.  
-It displays synced lyrics in a compact top overlay inspired by Dynamic Island behavior.
+Lyricfy is a Windows desktop lyric overlay for Spotify built with Python and PySide6. It shows the current lyric line in a compact always-on-top window, with synced timing from local `.lrc` files or LRCLIB.
 
 ## Features
 
 - Reads the currently playing track from Spotify
-- Syncs lyrics using Spotify playback progress
-- Uses local `.lrc` files first, then falls back to LRCLIB
-- Compact always-on-top overlay
-- Draggable overlay with light snap behavior
-- Tray icon with `Show Overlay`, `Hide Overlay`, `Open Settings`, and `Exit`
-- Settings panel for Spotify credentials
-- Adjustable lyric offset in milliseconds
-- Custom overlay, text, lyric, and glow colors
-- Auto-hide track header after the first 10 seconds of a new song
-- First-run `.env` generation with default theme values
+- Displays synced lyrics using Spotify playback progress
+- Checks local `.lrc` files first, then falls back to LRCLIB
+- Compact frameless overlay that stays on top
+- Draggable overlay with snap-back behavior near the last saved position
+- System tray controls for showing, hiding, opening settings, and exiting
+- In-app settings for Spotify credentials, redirect URI, lyric offset, and colors
+- Auto-created `.env` file on first launch
+- Spotify token cache stored separately from the source code in packaged builds
+- Quick lyric color toggle with `Shift+C`
+
+## Requirements
+
+- Windows
+- Python 3.11 or newer
+- A Spotify Premium account with active playback on a device
+- A Spotify Developer app
 
 ## Project Structure
 
 ```text
 .
-├─ assets/
-│  └─ lrc/
-├─ src/
-│  ├─ main.py
-│  └─ lyric_overlay/
-│     ├─ app_controller.py
-│     ├─ config.py
-│     ├─ lyrics.py
-│     ├─ main.py
-│     ├─ models.py
-│     ├─ overlay.py
-│     ├─ spotify_client.py
-│     └─ sync_engine.py
-├─ .env
-├─ .env.example
-├─ build.bat
-├─ icon.ico
-├─ requirements.txt
-└─ README.md
+|-- assets/
+|   `-- lrc/
+|-- src/
+|   |-- main.py
+|   `-- lyric_overlay/
+|       |-- app_controller.py
+|       |-- config.py
+|       |-- lyrics.py
+|       |-- main.py
+|       |-- models.py
+|       |-- overlay.py
+|       |-- spotify_client.py
+|       `-- sync_engine.py
+|-- .env.example
+|-- build.bat
+|-- icon.ico
+|-- Lyricfy.spec
+|-- requirements.txt
+`-- README.md
 ```
-
-## Requirements
-
-- Windows
-- Python 3.11+
-- A Spotify Developer app
-- Spotify playback available on your account/device
 
 ## Spotify App Setup
 
@@ -70,17 +68,22 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-## First Run and .env
+## Configuration
 
-Lyricfy supports automatic `.env` creation on first run.
+Lyricfy loads configuration from `.env`.
 
-Behavior:
-
-- In development mode, it uses the project folder `.env`
-- In bundled `.exe` mode, it uses:
+In development mode, runtime files stay in the project folder:
 
 ```text
-%APPDATA%\Lyricfy\.env
+.env
+.spotify_cache
+assets\lrc\
+```
+
+In packaged `.exe` mode, runtime files are stored in:
+
+```text
+%APPDATA%\Lyricfy\
 ```
 
 If no `.env` exists yet, Lyricfy creates one automatically with these defaults:
@@ -100,17 +103,17 @@ LYRIC_GLOW_COLOR=#66CCFFFF
 
 ## Run
 
-Use the project entry point:
+Start the app with:
 
 ```powershell
 python src\main.py
 ```
 
-Do not run internal module files such as `src\lyric_overlay\sync_engine.py` directly.
+Do not run internal module files directly.
 
 ## Settings Panel
 
-The in-app settings panel supports:
+The built-in settings panel supports:
 
 - Spotify Client ID
 - Spotify Client Secret
@@ -121,21 +124,23 @@ The in-app settings panel supports:
 - Lyric Color
 - Lyric Glow Color
 
+Use `Save` to write changes to `.env`, then `Reload Spotify` to reconnect with the latest credentials.
+
 ## Lyric Offset
 
-Use `Lyric Offset (ms)` to adjust sync timing:
+`Lyric Offset (ms)` shifts the displayed lyric timing:
 
-- Negative value: lyrics appear earlier
-- Positive value: lyrics appear later
+- Negative values show lyrics earlier
+- Positive values show lyrics later
 
 Examples:
 
-- `-250` makes lyrics appear 250 ms earlier
-- `300` makes lyrics appear 300 ms later
+- `-250` shows lyrics 250 ms earlier
+- `300` shows lyrics 300 ms later
 
 ## Local LRC Files
 
-Place local lyric files inside `assets/lrc/` using this format:
+Place local lyric files in `assets/lrc/` with this naming format:
 
 ```text
 Artist - Title.lrc
@@ -147,7 +152,7 @@ Example:
 Coldplay - Yellow.lrc
 ```
 
-Example file content:
+Example content:
 
 ```text
 [00:10.00]Look at the stars
@@ -155,9 +160,11 @@ Example file content:
 [00:18.20]And everything you do
 ```
 
+Lyricfy sanitizes invalid Windows filename characters when matching local files.
+
 ## Build
 
-To build the executable:
+Build the standalone executable with:
 
 ```powershell
 build.bat
@@ -169,35 +176,25 @@ Output:
 dist\Lyricfy.exe
 ```
 
-Bundled runtime data is stored in:
+The build script packages the app as a one-file windowed executable and includes the application icon.
 
-```text
-%APPDATA%\Lyricfy\
-```
+## Runtime Behavior
 
-That location is used for:
+- The overlay opens near the top-center of the screen
+- Closing the overlay hides it to the system tray instead of exiting
+- The tray icon remains available for reopening settings or exiting the app
+- The current track header is shown briefly when the song changes
+- If playback is paused, the overlay shows a paused status
+- If Spotify credentials are missing or invalid, the overlay prompts you to open settings
 
-- `.env`
-- `.spotify_cache`
-- `assets\lrc\`
+## Notes
 
-## Sync Notes
-
-- Sync is based on Spotify `progress_ms`
-- External synced lyrics may not match the exact Spotify track version
-- The most stable setup is still a local `.lrc` file with known timestamps
+- Lyric sync is based on Spotify `progress_ms`
+- External synced lyrics may not exactly match the track version currently playing
+- Local `.lrc` files are the most reliable option when exact timing matters
+- Spotify API rate limiting is handled with a temporary cooldown message in the overlay
 
 ## Sources
 
-- Spotify Web API for current playback
+- Spotify Web API for playback state
 - LRCLIB for synced lyric fallback
-
-## Current UI Behavior
-
-- The overlay opens at the top-center of the screen
-- The overlay does not appear as a normal taskbar window
-- The tray icon remains available for control and exit
-- The track header shows for about 10 seconds when a new track starts
-- Long lyrics can wrap to a second line
-- The `-` button hides the overlay
-- The settings button expands the configuration panel

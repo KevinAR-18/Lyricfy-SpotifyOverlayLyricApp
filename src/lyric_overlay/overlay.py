@@ -24,8 +24,12 @@ from .models import TrackInfo
 class OverlayWindow(QWidget):
     save_requested = Signal(object)
     reconnect_requested = Signal()
+    lyric_color_toggle_requested = Signal(str)
     overlay_hidden = Signal()
     overlay_shown = Signal()
+
+    _DEFAULT_LYRIC_COLOR = "#F4F4F4"
+    _DARK_LYRIC_COLOR = "#1A1A1A"
 
     def __init__(self) -> None:
         super().__init__()
@@ -55,6 +59,7 @@ class OverlayWindow(QWidget):
             | Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMinimumSize(640, 76)
         self.resize(640, 76)
 
@@ -319,6 +324,18 @@ class OverlayWindow(QWidget):
     def _emit_save(self) -> None:
         self.save_requested.emit(self.current_form_config())
 
+    def toggle_lyric_color_shortcut(self) -> None:
+        current_color = (self.lyric_color_input.text().strip() or self._lyric_text_color).upper()
+        next_color = self._DARK_LYRIC_COLOR
+        if current_color == self._DARK_LYRIC_COLOR:
+            next_color = self._DEFAULT_LYRIC_COLOR
+
+        self.lyric_color_input.setText(next_color)
+        updated_config = self.current_form_config()
+        self.apply_config_theme(updated_config)
+        self.show_status(f"Lyric color: {next_color}")
+        self.lyric_color_toggle_requested.emit(next_color)
+
     def set_track(self, track: TrackInfo | None, lyrics_source: str = "") -> None:
         del lyrics_source
         if track is None:
@@ -398,6 +415,7 @@ class OverlayWindow(QWidget):
 
     def mousePressEvent(self, event) -> None:  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
+            self.setFocus(Qt.FocusReason.MouseFocusReason)
             self._drag_origin = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             event.accept()
 
@@ -418,6 +436,13 @@ class OverlayWindow(QWidget):
                 self._user_positioned = True
         self._drag_origin = None
         event.accept()
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802
+        if event.key() == Qt.Key.Key_C and event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            self.toggle_lyric_color_shortcut()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def request_close(self) -> None:
         self.hide_to_tray()

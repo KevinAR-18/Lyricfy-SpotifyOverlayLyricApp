@@ -124,6 +124,22 @@ def main() -> int:
         overlay.show_status("Settings saved to .env")
         controller.config = saved_config
 
+    def toggle_lyric_color(lyric_color: str) -> None:
+        saved_config = AppConfig(
+            spotify_client_id=controller.config.spotify_client_id,
+            spotify_client_secret=controller.config.spotify_client_secret,
+            spotify_redirect_uri=controller.config.spotify_redirect_uri,
+            poll_interval_ms=controller.config.poll_interval_ms,
+            lrclib_enabled=controller.config.lrclib_enabled,
+            lyric_offset_ms=controller.config.lyric_offset_ms,
+            overlay_bg_color=controller.config.overlay_bg_color,
+            overlay_text_color=controller.config.overlay_text_color,
+            lyric_text_color=lyric_color or controller.config.lyric_text_color,
+            lyric_glow_color=controller.config.lyric_glow_color,
+        )
+        save_config(saved_config)
+        controller.config = saved_config
+
     def reconnect_spotify() -> None:
         latest = load_config()
         new_client = build_spotify_client(latest)
@@ -135,6 +151,7 @@ def main() -> int:
 
     overlay.save_requested.connect(save_settings)
     overlay.reconnect_requested.connect(reconnect_spotify)
+    overlay.lyric_color_toggle_requested.connect(toggle_lyric_color)
     overlay.overlay_hidden.connect(controller.pause_polling)
     overlay.overlay_shown.connect(controller.resume_polling)
     app.aboutToQuit.connect(controller.stop)
