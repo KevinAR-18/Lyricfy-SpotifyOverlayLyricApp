@@ -58,7 +58,7 @@ class AppConfig:
     spotify_client_id: str
     spotify_client_secret: str
     spotify_redirect_uri: str
-    poll_interval_ms: int = 2500
+    poll_interval_ms: int = 1000
     lrclib_enabled: bool = True
     lyric_offset_ms: int = 0
     overlay_bg_color: str = "#0A0A0AEB"
@@ -73,7 +73,7 @@ def default_config() -> AppConfig:
         spotify_client_id="",
         spotify_client_secret="",
         spotify_redirect_uri="http://127.0.0.1:8888/callback",
-        poll_interval_ms=2500,
+        poll_interval_ms=1000,
         lrclib_enabled=True,
         lyric_offset_ms=0,
         overlay_bg_color="#0A0A0AEB",
@@ -87,9 +87,9 @@ def load_config() -> AppConfig:
     # Prioritas utama adalah .env di folder runtime/app data.
     # Jika belum ada, fallback ke .env di base directory.
     if ENV_FILE.exists():
-        load_dotenv(ENV_FILE)
+        load_dotenv(ENV_FILE, override=True)
     elif FALLBACK_ENV_FILE.exists():
-        load_dotenv(FALLBACK_ENV_FILE)
+        load_dotenv(FALLBACK_ENV_FILE, override=True)
 
     # Semua nilai environment dikonversi ke AppConfig agar mudah dipakai modul lain.
     return AppConfig(
@@ -99,7 +99,7 @@ def load_config() -> AppConfig:
             "SPOTIFY_REDIRECT_URI",
             "http://127.0.0.1:8888/callback",
         ).strip(),
-        poll_interval_ms=int(os.getenv("POLL_INTERVAL_MS", "2500")),
+        poll_interval_ms=int(os.getenv("POLL_INTERVAL_MS", "1000")),
         lrclib_enabled=os.getenv("LRCLIB_ENABLED", "true").lower() == "true",
         lyric_offset_ms=int(os.getenv("LYRIC_OFFSET_MS", "0")),
         overlay_bg_color=os.getenv("OVERLAY_BG_COLOR", "#0A0A0AEB").strip() or "#0A0A0AEB",

@@ -30,6 +30,8 @@ class OverlayWindow(QWidget):
 
     _DEFAULT_LYRIC_COLOR = "#F4F4F4"
     _DARK_LYRIC_COLOR = "#1A1A1A"
+    _HEADER_VISIBLE_DURATION_SECONDS = 7.0
+    _NO_LYRICS_NOTICE_SECONDS = 4.0
 
     def __init__(self) -> None:
         super().__init__()
@@ -44,7 +46,9 @@ class OverlayWindow(QWidget):
         self._artist_text = ""
         self._current_line_text = ""
         self._status_text = ""
+        self._lyrics_available = False
         self._header_visible_until = 0.0
+        self._no_lyrics_notice_until = 0.0
         self._overlay_bg_color = "#0A0A0AEB"
         self._overlay_text_color = "#F4F4F4"
         self._lyric_text_color = "#F4F4F4"
@@ -284,7 +288,7 @@ class OverlayWindow(QWidget):
             spotify_client_id=self.client_id_input.text().strip(),
             spotify_client_secret=self.client_secret_input.text().strip(),
             spotify_redirect_uri=self.redirect_uri_input.text().strip(),
-            poll_interval_ms=2500,
+            poll_interval_ms=1000,
             lrclib_enabled=True,
             lyric_offset_ms=lyric_offset_ms,
             overlay_bg_color=self.overlay_color_input.text().strip() or "#0A0A0AEB",
@@ -341,26 +345,48 @@ class OverlayWindow(QWidget):
         self.lyric_color_toggle_requested.emit(next_color)
 
     def set_track(self, track: TrackInfo | None, lyrics_source: str = "") -> None:
-        del lyrics_source
+        previous_header_visible = self.track_title_label.isVisible()
+        previous_header_text = self.track_title_label.text()
+        normalized_source = (lyrics_source or "").strip().lower()
+        self._lyrics_available = bool(normalized_source) and normalized_source not in {"none", "loading"}
         if track is None:
             self._track_text = "Spotify is not playing"
             self._artist_text = "Waiting for playback"
+            self._lyrics_available = False
             self._header_visible_until = 0.0
+            self._no_lyrics_notice_until = 0.0
             self._refresh_compact_text()
+            self._apply_window_mode_if_layout_changed(previous_header_text, previous_header_visible)
             return
 
         previous_title = self._track_text
         previous_artist = self._artist_text
         self._track_text = track.title
         self._artist_text = track.artist
-        if self._track_text != previous_title or self._artist_text != previous_artist:
-            self._header_visible_until = time.monotonic() + 10.0
+        if self._lyrics_available and (
+            self._track_text != previous_title or self._artist_text != previous_artist
+        ):
+            self._header_visible_until = time.monotonic() + self._HEADER_VISIBLE_DURATION_SECONDS
+        elif self._lyrics_available and self._header_visible_until <= 0.0:
+            self._header_visible_until = time.monotonic() + self._HEADER_VISIBLE_DURATION_SECONDS
+        elif not self._lyrics_available:
+            self._header_visible_until = 0.0
         self._refresh_compact_text()
+        self._apply_window_mode_if_layout_changed(previous_header_text, previous_header_visible)
 
     def set_lines(self, current_line: str, next_line: str) -> None:
+        previous_compact_text = self.compact_label.text()
+        previous_header_visible = self.track_title_label.isVisible()
+        previous_header_text = self.track_title_label.text()
         del next_line
         self._current_line_text = current_line.strip()
         self._refresh_compact_text()
+        if (
+            self.compact_label.text() != previous_compact_text
+            or self.track_title_label.isVisible() != previous_header_visible
+            or self.track_title_label.text() != previous_header_text
+        ):
+            self._apply_window_mode()
 
     def set_paused(self) -> None:
         self._status_text = "Playback paused"
@@ -369,19 +395,42 @@ class OverlayWindow(QWidget):
         self._refresh_compact_text()
         self._apply_window_mode()
 
+    def show_no_lyrics_notice(self) -> None:
+        self._no_lyrics_notice_until = time.monotonic() + self._NO_LYRICS_NOTICE_SECONDS
+        self._refresh_compact_text()
+        self._apply_window_mode()
+
     def _refresh_compact_text(self) -> None:
         title_text = self._track_text.strip()
         artist_text = self._artist_text.strip()
-        header_text = artist_text or title_text
-        self.track_title_label.setText(header_text)
-        self.track_title_label.setVisible(bool(header_text) and time.monotonic() < self._header_visible_until)
-
         if self._current_line_text:
             compact_text = self._current_line_text
+        elif time.monotonic() < self._no_lyrics_notice_until:
+            compact_text = "No lyric found"
         else:
             compact_text = title_text or artist_text
 
+        if self._lyrics_available:
+            header_text = f"{title_text} - {artist_text}" if title_text and artist_text else title_text or artist_text
+            show_small_track = bool(header_text) and time.monotonic() < self._header_visible_until
+        else:
+            header_text = artist_text
+            show_small_track = bool(header_text)
+
+        self.track_title_label.setText(header_text)
+        self.track_title_label.setVisible(show_small_track)
         self.compact_label.setText(compact_text)
+
+    def _apply_window_mode_if_layout_changed(
+        self,
+        previous_header_text: str,
+        previous_header_visible: bool,
+    ) -> None:
+        if (
+            self.track_title_label.text() != previous_header_text
+            or self.track_title_label.isVisible() != previous_header_visible
+        ):
+            self._apply_window_mode()
 
     def _apply_window_mode(self) -> None:
         target_width = 640 if not self._expanded else 760

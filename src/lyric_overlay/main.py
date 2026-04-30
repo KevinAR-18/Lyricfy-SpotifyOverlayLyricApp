@@ -107,17 +107,18 @@ def main() -> int:
     )
 
     def save_settings(new_config: AppConfig) -> None:
+        current_config = controller.config
         saved_config = AppConfig(
             spotify_client_id=new_config.spotify_client_id,
             spotify_client_secret=new_config.spotify_client_secret,
             spotify_redirect_uri=new_config.spotify_redirect_uri or "http://127.0.0.1:8888/callback",
-            poll_interval_ms=config.poll_interval_ms,
-            lrclib_enabled=config.lrclib_enabled,
+            poll_interval_ms=current_config.poll_interval_ms,
+            lrclib_enabled=current_config.lrclib_enabled,
             lyric_offset_ms=new_config.lyric_offset_ms,
-            overlay_bg_color=new_config.overlay_bg_color or config.overlay_bg_color,
-            overlay_text_color=new_config.overlay_text_color or config.overlay_text_color,
-            lyric_text_color=new_config.lyric_text_color or config.lyric_text_color,
-            lyric_glow_color=new_config.lyric_glow_color or config.lyric_glow_color,
+            overlay_bg_color=new_config.overlay_bg_color or current_config.overlay_bg_color,
+            overlay_text_color=new_config.overlay_text_color or current_config.overlay_text_color,
+            lyric_text_color=new_config.lyric_text_color or current_config.lyric_text_color,
+            lyric_glow_color=new_config.lyric_glow_color or current_config.lyric_glow_color,
         )
         save_config(saved_config)
         overlay.apply_config_theme(saved_config)

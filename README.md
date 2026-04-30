@@ -7,6 +7,7 @@ Lyricfy is a Windows desktop lyric overlay for Spotify built with Python and PyS
 - Reads the currently playing track from Spotify
 - Displays synced lyrics using Spotify playback progress
 - Checks local `.lrc` files first, then falls back to LRCLIB
+- Retries lyric lookup automatically when a new track does not resolve on the first attempt
 - Compact frameless overlay that stays on top
 - Draggable overlay with snap-back behavior near the last saved position
 - System tray controls for showing, hiding, opening settings, and exiting
@@ -93,7 +94,7 @@ If no `.env` exists yet, Lyricfy creates one automatically with these defaults:
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REDIRECT_URI=http://127.0.0.1:8888/callback
-POLL_INTERVAL_MS=2500
+POLL_INTERVAL_MS=1000
 LRCLIB_ENABLED=true
 LYRIC_OFFSET_MS=0
 OVERLAY_BG_COLOR=#0A0A0AEB
@@ -183,8 +184,11 @@ The build script packages the app as a one-file windowed executable and includes
 
 - The overlay opens near the top-center of the screen
 - Closing the overlay hides it to the system tray instead of exiting
+- Hiding the overlay pauses Spotify polling until the overlay is shown again
 - The tray icon remains available for reopening settings or exiting the app
-- The current track header is shown briefly when the song changes
+- If lyrics are available, the main line shows the current lyric and the second line shows `Title - Artist` briefly at the start of the song
+- If lyrics are not available yet, the main line shows the track title and the second line shows the artist
+- If lyric lookup still fails after automatic retries, the overlay briefly shows `No lyric found` and then returns to the title and artist view
 - If playback is paused, the overlay shows a paused status
 - If Spotify credentials are missing or invalid, the overlay prompts you to open settings
 
@@ -198,6 +202,7 @@ The build script packages the app as a one-file windowed executable and includes
 - Lyric sync is based on Spotify `progress_ms`
 - External synced lyrics may not exactly match the track version currently playing
 - Local `.lrc` files are the most reliable option when exact timing matters
+- Spotify polling defaults to 1 second for faster track change detection
 - Spotify API rate limiting is handled with a temporary cooldown message in the overlay
 
 ## Sources
