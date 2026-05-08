@@ -46,10 +46,23 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
+echo Copying icon.ico to dist...
+copy /y icon.ico dist\icon.ico >nul
+
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ========================================
+    echo ERROR: Failed to copy icon.ico to dist
+    echo ========================================
+    pause
+    exit /b 1
+)
+
 echo.
 echo ========================================
 echo Build complete
 echo Output: dist\Lyricfy.exe
+echo Icon: dist\icon.ico
 echo ========================================
 echo.
 echo Runtime data location after build:
